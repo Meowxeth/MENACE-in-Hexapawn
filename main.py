@@ -67,20 +67,25 @@ ai_moves = {
 }
 
 # what the board looks like currently.
-board = [[' ', 'i', 'i'], [' ', 'i', 'O'], ['O', ' ', ' ']]
+board = [['i', 'i', 'i'], [' ', ' ', ' '], ['O', 'O', 'O']]
 # stored used moves. state      from       to
 # example           ['state4', [0, 1], [1, 2]]
 used_moves = []
 
 
+def reset_board():
+    board = [['i', 'i', 'i'], [' ', ' ', ' '], ['O', 'O', 'O']]
+
+
 def print_board():
     for i, k in itertools.product(range(1), board):
         print(k)
+    print('\n')
 
 #   pos[row][column]
 
 
-def get_position_target(target):
+def get_position(target):
     if len(target) > 2:
         return False
     if target.endswith('1'):
@@ -108,37 +113,6 @@ def get_position_target(target):
     else:
         return False
     return target_pos
-
-
-def get_position_piece(piece):
-    # if longer than 2 characters, return False
-    if len(piece) > 2:
-        return False
-    if piece.endswith('1'):
-        if piece.lower().startswith('a'):
-            piece_pos = [0, 0]
-        elif piece.lower().startswith('b'):
-            piece_pos = [0, 1]
-        else:
-            piece_pos = [0, 2]
-
-    elif piece.endswith('2'):
-        if piece.lower().startswith('a'):
-            piece_pos = [1, 0]
-        elif piece.lower().startswith('b'):
-            piece_pos = [1, 1]
-        else:
-            piece_pos = [1, 2]
-    elif piece.endswith('3'):
-        if piece.lower().startswith('a'):
-            piece_pos = [2, 0]
-        elif piece.lower().startswith('b'):
-            piece_pos = [2, 1]
-        else:
-            piece_pos = [2, 2]
-    else:
-        return False
-    return piece_pos
 
 
 def is_it_forward(targ_pos, piece_pos):
@@ -184,35 +158,41 @@ def check_game_state(board, turn):
     # Anyone who reaches the other player's respective square first,
     # or takes out all of the opponent's pieces,
     # or makes the other player unable to make any valid moves in their turn is the winner
-    if 'i' in board[0]:
-        return 'i'
-    elif 'O' in board[2]:
-        return 'O'
-    elif get_possible_moves(current_board=board, current_turn=turn) is None:
-        return 'stalemate'
-    elif get_pos('O') is None:
-        return 'i'
-    elif get_pos('i') is None:
-        return 'O'
+    if turn == 'i':
+        if 'i' in board[2]:
+            return 'i'
+        elif get_pos(board, piece='i') is None:
+            return 'i'
+        elif get_possible_moves(current_board=board, current_turn=turn) is None:
+            return 'stalemate'
+    elif turn == 'O':
+        if 'O' in board[0]:
+            return 'O'
+        elif get_pos(board, piece='O') is None:
+            return 'O'
     else:
-        return False
+        print("should not happen.")
 
 
 def move_player(orgin, destination):
+    orgin = get_position(orgin)
+    destination = get_position(destination)
     # replace orgin with empty space
     board[orgin[0]][orgin[1]] = ' '
     # replace destination with O
     board[destination[0]][destination[1]] = 'O'
+    print_board()
 
 
-def roll(board, move_set=ai_moves):
-    #state = get_game_state()
-    # example state
-    for key, value in game_states.items():
-        if board == value:
-            state = key
+def roll(board=board):
+    try:
+        for key, value in game_states.items():
+            if board == value:
+                state = key
+    except UnboundLocalError:
+        return
     # returns None if state = "state0"
-    moves = move_set.get(state)
+    moves = ai_moves.get(state)
     weights = []
     coordinates = []
     for move in moves:
@@ -224,16 +204,16 @@ def roll(board, move_set=ai_moves):
         coordinate = bead_orgin, bead_destination
         coordinates.append(coordinate)
     chosen_choices = choices(population=coordinates, weights=weights, k=1)
-    print(chosen_choices)
     _from = chosen_choices[0][0]
     to = chosen_choices[0][1]
     return state, _from, to
 
 
 def ai_move():
-    state, _from, to = roll(board)
+    state, _from, to = roll()
     board[_from[0]][_from[1]] = ' '
     board[to[0]][to[1]] = 'i'
+    print_board()
     # records the move into a list. Used later to change the weights next game.
     used_moves.append([state, _from, to])
 
@@ -245,49 +225,34 @@ def change_weights(game_outcome, weight_change_lose=-1, weight_change_win=0):
     if game_outcome == 'O':
         for used_move in used_moves:
             used_state = used_move[0]
-            print(used_state)
+            # print(used_state)
             used_from = used_move[1]
             used_to = used_move[2]
             moves = ai_moves.get(used_state)
-            print("BEFORE", ai_moves.get(used_state))
+            #print("BEFORE", ai_moves.get(used_state))
             for index, move in enumerate(moves):
                 if move[0] == used_from and move[1] == used_to:
                     new_weight = move[2] + weight_change_lose
                     ai_moves[used_state][index] = [
                         used_from, used_to, new_weight]
-            print("AFTER", ai_moves.get(used_state))
+            #print("AFTER", ai_moves.get(used_state))
     # same thing, but this is for when the AI wins.
     elif game_outcome == 'i':
         for used_move in used_moves:
             used_state = used_move[0]
-            print(used_state)
+            # print(used_state)
             used_from = used_move[1]
             used_to = used_move[2]
             moves = ai_moves.get(used_state)
-            print("BEFORE", ai_moves.get(used_state))
+            #print("BEFORE", ai_moves.get(used_state))
             for index, move in enumerate(moves):
                 if move[0] == used_from and move[1] == used_to:
                     new_weight = move[2] + weight_change_win
                     ai_moves[used_state][index] = [
                         used_from, used_to, new_weight]
-            print("AFTER", ai_moves.get(used_state))
+            #print("AFTER", ai_moves.get(used_state))
     else:
         return
-
-
-def move_piece(target=None, piece=None, turn='O'):
-    if turn == 'i':
-        ai_move()
-        print_board()
-
-    elif validity(targ_pos=get_position_target(target), piece_pos=get_position_target(piece)) == True:
-        move_player(orgin=get_position_target(piece),
-                    destination=get_position_target(target))
-        print('moving...')
-        print_board()
-
-    else:
-        print('Invalid move')
 
 
 recorded_matches = []
@@ -319,3 +284,35 @@ Format is:
 
 
 #format is letter, number
+
+
+def main_loop(running=True):
+    instructions()
+    print("type \'exit\' to leave the game.")
+    while running:
+        print('It is your turn')
+        piece = input('Example - A3\nChoose a piece: ')
+        if piece == 'exit':
+            break
+        target = input('Example - A2\nto where: ')
+        if target == 'exit':
+            break
+        if validity(targ_pos=get_position(target), piece_pos=get_position(piece)) == True:
+            move_player(target, piece)
+            check_if_player_won = check_game_state(board=board, turn='O')
+            if check_if_player_won == 'O':
+                print('you won!')
+                change_weights(game_outcome='O')
+                # do something to reset the board and do a show_wins()
+                record_win('O')
+                continue
+            ai_move()
+            check_if_ai_won = check_game_state(board=board, turn='i')
+            if check_if_ai_won == 'i':
+                print('ai won!')
+                change_weights(game_outcome='i')
+                # do something to reset the board and do a show_wins()
+                record_win('i')
+
+
+main_loop()
