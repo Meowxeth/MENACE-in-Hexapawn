@@ -1,10 +1,10 @@
 import itertools
 from random import choices
+import collections
 from check_state import get_possible_moves, get_pos
 print('hello world!')
 
 # Hard coded possible states.
-# if board state is == gamestate key value, get key to get value moves. then we could tweak the list values of moves?
 game_states = {
     # state0 is the starting state.
     "state0": [['i', 'i', 'i'], [' ', ' ', ' '], ['O', 'O', 'O']],
@@ -31,13 +31,9 @@ game_states = {
     "state21": [[' ', ' ', 'i'], [' ', 'O', 'i'], [' ', ' ', ' ']],
     "state22": [[' ', 'i', ' '], ['O', 'O', 'i'], [' ', ' ', ' ']],
     "state23": [[' ', ' ', 'i'], ['i', 'i', 'O'], [' ', ' ', ' ']],
-    "state24": [[' ', 'i', ' '], [' ', 'i', 'O'], [' ', ' ', ' ']]
+    "state24": [[' ', 'i', ' '], [' ', 'i', 'O'], [' ', ' ', ' ']],
+    "state25": [['i', 'i', 'i'], [' ', ' ', 'O'], ['O', 'O', ' ']]
 }
-# coordinate reference
-#       0   1   2
-#   0   i   i   i
-#   1
-#   2   O   O   O
 ai_moves = {
     # [[[orgin_row, orgin_column], [target_row, target_column], weight],[another move], ...]
     "state1": [[[0, 1], [1, 0], 1], [[0, 1], [1, 1], 1], [[0, 2], [1, 2], 1]],
@@ -73,46 +69,45 @@ board = [['i', 'i', 'i'], [' ', ' ', ' '], ['O', 'O', 'O']]
 used_moves = []
 
 
-def reset_board():
-    board = [['i', 'i', 'i'], [' ', ' ', ' '], ['O', 'O', 'O']]
-
-
 def print_board():
+    print('\n')
     for i, k in itertools.product(range(1), board):
-        print(k)
+        print(*k, sep='  ')
     print('\n')
 
-#   pos[row][column]
+
+def reset_board():
+    global board
+    board = [['i', 'i', 'i'], [' ', ' ', ' '], ['O', 'O', 'O']]
+#   pos[row, column]
 
 
 def get_position(target):
-    if len(target) > 2:
-        return False
-    if target.endswith('1'):
-        if target.lower().startswith('a'):
-            target_pos = [0, 0]
-        elif target.lower().startswith('b'):
-            target_pos = [0, 1]
+    if target.lower().startswith('a'):
+        if target.endswith('1'):
+            return [0, 0]
+        elif target.endswith('2'):
+            return [1, 0]
         else:
-            target_pos = [0, 2]
+            return [2, 0]
 
-    elif target.endswith('2'):
-        if target.lower().startswith('a'):
-            target_pos = [1, 0]
-        elif target.lower().startswith('b'):
-            target_pos = [1, 1]
+    elif target.lower().startswith('b'):
+        if target.endswith('1'):
+            return [0, 1]
+        elif target.endswith('2'):
+            return [1, 1]
         else:
-            target_pos = [1, 2]
-    elif target.endswith('3'):
-        if target.lower().startswith('a'):
-            target_pos = [2, 0]
-        elif target.lower().startswith('b'):
-            target_pos = [2, 1]
+            return [2, 1]
+
+    elif target.lower().startswith('c'):
+        if target.endswith('1'):
+            return [0, 2]
+        elif target.endswith('2'):
+            return [1, 2]
         else:
-            target_pos = [2, 2]
+            return [2, 2]
     else:
         return False
-    return target_pos
 
 
 def is_it_forward(targ_pos, piece_pos):
@@ -154,7 +149,7 @@ def validity(targ_pos, piece_pos):
         return False
 
 
-def check_game_state(board, turn):
+def check_game_state(turn=None):
     # Anyone who reaches the other player's respective square first,
     # or takes out all of the opponent's pieces,
     # or makes the other player unable to make any valid moves in their turn is the winner
@@ -170,21 +165,22 @@ def check_game_state(board, turn):
             return 'O'
         elif get_pos(board, piece='O') is None:
             return 'O'
+        elif get_possible_moves(current_board=board, current_turn=turn) is None:
+            return 'stalemate'
     else:
         print("should not happen.")
 
 
-def move_player(orgin, destination):
+def move_player(orgin=None, destination=None):
     orgin = get_position(orgin)
     destination = get_position(destination)
     # replace orgin with empty space
     board[orgin[0]][orgin[1]] = ' '
     # replace destination with O
     board[destination[0]][destination[1]] = 'O'
-    print_board()
 
 
-def roll(board=board):
+def roll():
     try:
         for key, value in game_states.items():
             if board == value:
@@ -265,6 +261,25 @@ def record_win(winner):
         recorded_matches.append('O')
 
 
+def show_score():
+    total_matches = len(recorded_matches)
+    player_wins = 0
+    ai_wins = 0
+    for match in recorded_matches:
+        if match == 'O':
+            player_wins += 1
+        else:
+            ai_wins += 1
+    try:
+        player_ratio = (player_wins / total_matches) * 100
+        ai_ratio = (ai_wins / total_matches) * 100
+    except ZeroDivisionError:
+        print('there are no scores yet!')
+        return
+    print("\n\nMatches played : ", total_matches, "\nPlayer wins:",
+          player_wins, "\nAI wins: ", ai_wins, "\n Win ratio \n Player :", player_ratio, "%\n AI :", ai_ratio, "%\n\n")
+
+
 def instructions():
     print('The goal of each player is to advance one of their pawns to the opposite end of the board,\n or to prevent the other player from moving')
     print("""
@@ -279,40 +294,63 @@ Format is:
         2
         3   O   O   O
 
-    YOU ARE 'O'
+    YOU ARE O
+
+    type \'exit\' to leave the game
+    type \'score\' to show the score so far
 """)
 
 
-#format is letter, number
-
-
-def main_loop(running=True):
+# game loop
+def main_loop():
+    turn = 0
     instructions()
-    print("type \'exit\' to leave the game.")
-    while running:
-        print('It is your turn')
-        piece = input('Example - A3\nChoose a piece: ')
+    print("before", ai_moves)
+    while True:
+        print('Example - A3\nChoose a piece: ')
+        piece = input()
         if piece == 'exit':
             break
-        target = input('Example - A2\nto where: ')
+        elif piece == 'score':
+            show_score()
+            continue
+        print('Example - A2\nto where: ')
+        target = input()
         if target == 'exit':
             break
-        if validity(targ_pos=get_position(target), piece_pos=get_position(piece)) == True:
-            move_player(target, piece)
-            check_if_player_won = check_game_state(board=board, turn='O')
-            if check_if_player_won == 'O':
-                print('you won!')
+        elif target == 'score':
+            show_score()
+            continue
+        if piece == target:
+            print('invalid input')
+            continue
+        elif len(piece) > 2 or len(target) > 2:
+            print('invalid input')
+            continue
+        else:
+            if validity(targ_pos=get_position(target), piece_pos=get_position(piece)) != True:
+                continue
+            move_player(orgin=piece, destination=target)
+            if check_game_state(turn='O') == 'O' or ('stalemate' and turn != 0):
+                print('\nYOU WON!\n')
                 change_weights(game_outcome='O')
-                # do something to reset the board and do a show_wins()
+                reset_board()
                 record_win('O')
+                print_board()
+                turn = 0
+                print(ai_moves)
                 continue
             ai_move()
-            check_if_ai_won = check_game_state(board=board, turn='i')
-            if check_if_ai_won == 'i':
-                print('ai won!')
+            if check_game_state(turn='i') == 'i' or ('stalemate' and turn != 0):
+                print('\nAI won!\n')
                 change_weights(game_outcome='i')
-                # do something to reset the board and do a show_wins()
+                reset_board()
                 record_win('i')
+                print_board()
+                turn = 0
+                print(ai_moves)
+                continue
+            turn += 1
 
 
 main_loop()
