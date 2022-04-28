@@ -18,7 +18,7 @@ def get_possible_moves(current_board, current_turn):
         piece[0] = piece[0] + forward_offset
         if current_board[piece[0]][piece[1]] == ' ':
             possible_moves.append(piece)
-    print("forward", possible_moves)
+    #print("forward", possible_moves)
     # B go left diagonally; if it can, add it to possible_moves
     for piece in get_pos(board=current_board, piece=current_turn):
         piece[0] += forward_offset
@@ -27,7 +27,7 @@ def get_possible_moves(current_board, current_turn):
             continue
         if current_board[piece[0]][piece[1]] == opposite:
             possible_moves.append(piece)
-    print("left", possible_moves)
+    #print("left", possible_moves)
     # C go right diagonally; if it can, add it to possible_moves
     for piece in get_pos(board=current_board, piece=current_turn):
         piece[0] += forward_offset
@@ -35,4 +35,5 @@ def get_possible_moves(current_board, current_turn):
         with contextlib.suppress(IndexError):
             if current_board[piece[0]][piece[1]] == opposite:
                 possible_moves.append(piece)
-    print("right", possible_moves)
+    #print("right", possible_moves)
+    return possible_moves
