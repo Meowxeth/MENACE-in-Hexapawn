@@ -32,12 +32,20 @@ game_states = {
     "state22": [[' ', 'i', ' '], ['O', 'O', 'i'], [' ', ' ', ' ']],
     "state23": [[' ', ' ', 'i'], ['i', 'i', 'O'], [' ', ' ', ' ']],
     "state24": [[' ', 'i', ' '], [' ', 'i', 'O'], [' ', ' ', ' ']],
-    "state25": [['i', 'i', 'i'], [' ', ' ', 'O'], ['O', 'O', ' ']]
+    "state25": [['i', 'i', 'i'], [' ', ' ', 'O'], ['O', 'O', ' ']],
+    "state26": [['i', ' ', 'i'], [' ', 'O', 'O'], ['O', ' ', ' ']],
+    "state27": [['i', ' ', 'i'], ['O', ' ', 'i'], [' ', 'O', ' ']],
+    "state28": [['i', ' ', 'i'], [' ', 'O', 'i'], ['O', ' ', ' ']],
+    "state29": [['i', ' ', 'i'], [' ', 'O', 'i'], ['O', ' ', ' ']],
+    "state30": [['i', ' ', 'i'], ['O', 'i', 'i'], [' ', ' ', ' ']],
+    "state31": [[' ', 'i', 'i'], ['i', ' ', 'O'], ['O', ' ', ' ']],
+    "state32": [[' ', ' ', 'i'], ['O', 'O', 'O'], [' ', ' ', ' ']],
+
 }
 ai_moves = {
     # [[[orgin_row, orgin_column], [target_row, target_column], weight],[another move], ...]
     "state1": [[[0, 1], [1, 0], 1], [[0, 1], [1, 1], 1], [[0, 2], [1, 2], 1]],
-    "state2": [[[0, 0], [1, 0], 1], [[0, 0], [0, 1], 1]],
+    "state2": [[[0, 0], [1, 0], 1], [[0, 0], [1, 1], 1], [[0, 2], [1, 2], 1]],
     "state3": [[[0, 1], [1, 2], 1], [[0, 2], [1, 1], 1]],
     "state4": [[[0, 1], [1, 2], 1], [[1, 1], [2, 0], 1], [[1, 1], [2, 1], 1]],
     "state5": [[[0, 1], [1, 0], 1], [[0, 1], [1, 1], 1], [[0, 1], [1, 2], 1]],
@@ -59,7 +67,15 @@ ai_moves = {
     "state21": [[[0, 2], [1, 1], 1], [[1, 2], [2, 2], 1]],
     "state22": [[[0, 1], [1, 0], 1], [[1, 2], [2, 2], 1]],
     "state23": [[[1, 0], [2, 0], 1], [[1, 1], [2, 1], 1]],
-    "state24": [[[0, 1], [1, 2], 1], [[1, 1], [2, 1], 1]]
+    "state24": [[[0, 1], [1, 2], 1], [[1, 1], [2, 1], 1]],
+    "state25": [[[0, 0], [1, 0], 1], [[0, 1], [1, 1], 1], [[0, 1], [1, 2], 1]],
+    "state26": [[[0, 0], [1, 0], 1], [[0, 0], [1, 1], 1], [[0, 2], [1, 1], 1]],
+    "state27": [[[1, 2], [2, 2], 1], [[1, 2], [2, 1], 1]],
+    "state28": [[[0, 0], [1, 0], 1]],
+    "state29": [[[0, 0], [1, 0], 1], [[0, 2], [1, 1], 1], [[1, 2], [2, 2], 1]],
+    "state30": [[[1, 1], [2, 1], 1], [[1, 2], [2, 2], 1]],
+    "state31": [[[0, 1], [1, 1], 1], [[0, 1], [1, 2], 1], [[0, 1], [1, 0], 1]],
+    "state32": [[[0, 2], [1, 1], 1]],
 }
 
 # what the board looks like currently.
@@ -80,6 +96,11 @@ def reset_board():
     global board
     board = [['i', 'i', 'i'], [' ', ' ', ' '], ['O', 'O', 'O']]
 #   pos[row, column]
+
+
+def clear_used_moves():
+    global used_moves
+    used_moves = []
 
 
 def get_position(target):
@@ -153,22 +174,19 @@ def check_game_state(turn=None):
     # Anyone who reaches the other player's respective square first,
     # or takes out all of the opponent's pieces,
     # or makes the other player unable to make any valid moves in their turn is the winner
-    if turn == 'i':
-        if 'i' in board[2]:
-            return 'i'
-        elif get_pos(board, piece='i') is None:
-            return 'i'
-        elif get_possible_moves(current_board=board, current_turn=turn) is None:
-            return 'stalemate'
-    elif turn == 'O':
-        if 'O' in board[0]:
-            return 'O'
-        elif get_pos(board, piece='O') is None:
-            return 'O'
-        elif get_possible_moves(current_board=board, current_turn=turn) is None:
-            return 'stalemate'
-    else:
-        print("should not happen.")
+    if 'i' in board[2]:
+        return 'i'
+    elif 'O' in board[0]:
+        return 'O'
+    elif get_pos(board, 'O') is None:
+        return 'i'
+    elif get_pos(board, 'i') is None:
+        return 'O'
+    # else:
+    #    stalemate_i = get_possible_moves(current_board=board, current_turn='i')
+    #    stalemate_o = get_possible_moves(current_board=board, current_turn='O')
+    #    if stalemate_i == stalemate_o:
+    #        return 'stalemate'
 
 
 def move_player(orgin=None, destination=None):
@@ -209,9 +227,9 @@ def ai_move():
     state, _from, to = roll()
     board[_from[0]][_from[1]] = ' '
     board[to[0]][to[1]] = 'i'
-    print_board()
     # records the move into a list. Used later to change the weights next game.
     used_moves.append([state, _from, to])
+    print('called')
 
 
 def change_weights(game_outcome, weight_change_lose=-1, weight_change_win=0):
@@ -305,7 +323,6 @@ Format is:
 def main_loop():
     turn = 0
     instructions()
-    print("before", ai_moves)
     while True:
         print('Example - A3\nChoose a piece: ')
         piece = input()
@@ -331,26 +348,32 @@ def main_loop():
             if validity(targ_pos=get_position(target), piece_pos=get_position(piece)) != True:
                 continue
             move_player(orgin=piece, destination=target)
-            if check_game_state(turn='O') == 'O' or ('stalemate' and turn != 0):
+            print_board()
+            check_player = check_game_state(turn='O')
+            print(check_player)
+            if check_player == 'O':
                 print('\nYOU WON!\n')
                 change_weights(game_outcome='O')
                 reset_board()
+                clear_used_moves()
                 record_win('O')
                 print_board()
                 turn = 0
-                print(ai_moves)
                 continue
             ai_move()
-            if check_game_state(turn='i') == 'i' or ('stalemate' and turn != 0):
+            check_ai = check_game_state(turn='i')
+            if check_ai == 'i':
                 print('\nAI won!\n')
+                print_board()
                 change_weights(game_outcome='i')
                 reset_board()
+                clear_used_moves()
                 record_win('i')
-                print_board()
                 turn = 0
-                print(ai_moves)
                 continue
+            print_board()
             turn += 1
 
 
+# TODO Fucking fix the stalemate issue
 main_loop()
