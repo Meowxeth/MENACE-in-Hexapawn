@@ -40,6 +40,8 @@ game_states = {
     "state30": [['i', ' ', 'i'], ['O', 'i', 'i'], [' ', ' ', ' ']],
     "state31": [[' ', 'i', 'i'], ['i', ' ', 'O'], ['O', ' ', ' ']],
     "state32": [[' ', ' ', 'i'], ['O', 'O', 'O'], [' ', ' ', ' ']],
+    "state33": [['i', ' ', 'i'], [' ', ' ', 'O'], ['O', ' ', ' ']],
+    "state34": [['i', ' ', ' '], [' ', 'O', 'i'], [' ', ' ', ' ']],
 
 }
 ai_moves = {
@@ -55,7 +57,7 @@ ai_moves = {
     "state9": [[[0, 1], [1, 0], 1], [[1, 1], [2, 1], 1], [[1, 1], [2, 2], 1], [[0, 2], [1, 2], 1]],
     "state10": [[[0, 2], [1, 1], 1], [[0, 2], [1, 2], 1]],
     "state11": [[[0, 0], [1, 1], 1], [[0, 2], [1, 2], 1], [[1, 0], [2, 0], 1], [[0, 2], [1, 2], 1]],
-    "state12": [[[0, 1], [2, 0], 1], [[0, 1], [2, 1], 1]],
+    "state12": [[[1, 0], [2, 0], 1], [[1, 0], [2, 1], 1]],
     "state13": [[[0, 2], [1, 1], 1], [[0, 2], [1, 2], 1]],
     "state14": [[[1, 0], [2, 0], 1], [[0, 1], [1, 2], 1]],
     "state15": [[[0, 0], [1, 1], 1], [[1, 0], [2, 0], 1]],
@@ -76,6 +78,8 @@ ai_moves = {
     "state30": [[[1, 1], [2, 1], 1], [[1, 2], [2, 2], 1]],
     "state31": [[[0, 1], [1, 1], 1], [[0, 1], [1, 2], 1], [[0, 1], [1, 0], 1]],
     "state32": [[[0, 2], [1, 1], 1]],
+    "state33": [[[0, 0], [1, 0], 1]],
+    "state34": [[[0, 0], [1, 0], 1], [[1, 2], [2, 2], 1]],
 }
 
 # what the board looks like currently.
@@ -173,20 +177,23 @@ def validity(targ_pos, piece_pos):
 def check_game_state(turn=None):
     # Anyone who reaches the other player's respective square first,
     # or takes out all of the opponent's pieces,
-    # or makes the other player unable to make any valid moves in their turn is the winner
+    # or makes the other player unable to make any valid moves in their turn is the winner\
+    stalemate_i = get_possible_moves(current_board=board, current_turn='i')
+    stalemate_O = get_possible_moves(current_board=board, current_turn='O')
     if 'i' in board[2]:
         return 'i'
     elif 'O' in board[0]:
         return 'O'
-    elif get_pos(board, 'O') is None:
+    elif get_pos(board, 'O') == []:
         return 'i'
-    elif get_pos(board, 'i') is None:
+    elif get_pos(board, 'i') == []:
         return 'O'
-    # else:
-    #    stalemate_i = get_possible_moves(current_board=board, current_turn='i')
-    #    stalemate_o = get_possible_moves(current_board=board, current_turn='O')
-    #    if stalemate_i == stalemate_o:
-    #        return 'stalemate'
+    elif stalemate_i == []:
+        return 'stalemate'
+    elif stalemate_O == []:
+        return 'stalemate'
+    else:
+        return
 
 
 def move_player(orgin=None, destination=None):
@@ -344,14 +351,19 @@ def main_loop():
         elif len(piece) > 2 or len(target) > 2:
             print('invalid input')
             continue
+        elif len(piece) == 0 or len(target) == 0:
+            print('invalid input')
+            continue
+        elif not target or not piece:
+            print("invalid input")
+            continue
         else:
             if validity(targ_pos=get_position(target), piece_pos=get_position(piece)) != True:
                 continue
             move_player(orgin=piece, destination=target)
             print_board()
             check_player = check_game_state(turn='O')
-            print(check_player)
-            if check_player == 'O':
+            if check_player == 'O' or check_player != 'O' and check_player == 'stalemate':
                 print('\nYOU WON!\n')
                 change_weights(game_outcome='O')
                 reset_board()
@@ -362,7 +374,7 @@ def main_loop():
                 continue
             ai_move()
             check_ai = check_game_state(turn='i')
-            if check_ai == 'i':
+            if check_ai == 'i' or check_ai != 'O' and check_ai == 'stalemate':
                 print('\nAI won!\n')
                 print_board()
                 change_weights(game_outcome='i')
@@ -375,5 +387,4 @@ def main_loop():
             turn += 1
 
 
-# TODO Fucking fix the stalemate issue
 main_loop()
