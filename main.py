@@ -1,7 +1,8 @@
 import itertools
 from random import choices
 import collections
-from check_state import get_possible_moves, get_pos
+import contextlib
+import itertools
 print('hello world!')
 
 # Hard coded possible states.
@@ -42,6 +43,7 @@ game_states = {
     "state32": [[' ', ' ', 'i'], ['O', 'O', 'O'], [' ', ' ', ' ']],
     "state33": [['i', ' ', 'i'], [' ', ' ', 'O'], ['O', ' ', ' ']],
     "state34": [['i', ' ', ' '], [' ', 'O', 'i'], [' ', ' ', ' ']],
+    "state35": [['i', ' ', ' '], ['O', 'i', 'i'], [' ', ' ', ' ']],
 
 }
 ai_moves = {
@@ -52,7 +54,7 @@ ai_moves = {
     "state4": [[[0, 1], [1, 2], 1], [[1, 1], [2, 0], 1], [[1, 1], [2, 1], 1]],
     "state5": [[[0, 1], [1, 0], 1], [[0, 1], [1, 1], 1], [[0, 1], [1, 2], 1]],
     "state6": [[[0, 2], [1, 2], 1]],
-    "state7": [[[0, 0], [1, 1], 1], [[0, 0], [1, 0], 1]],
+    "state7": [[[0, 0], [1, 1], 1], [[0, 1], [1, 0], 1]],
     "state8": [[[0, 0], [1, 1], 1], [[0, 2], [1, 1], 1], [[0, 2], [1, 2], 1]],
     "state9": [[[0, 1], [1, 0], 1], [[1, 1], [2, 1], 1], [[1, 1], [2, 2], 1], [[0, 2], [1, 2], 1]],
     "state10": [[[0, 2], [1, 1], 1], [[0, 2], [1, 2], 1]],
@@ -80,6 +82,7 @@ ai_moves = {
     "state32": [[[0, 2], [1, 1], 1]],
     "state33": [[[0, 0], [1, 0], 1]],
     "state34": [[[0, 0], [1, 0], 1], [[1, 2], [2, 2], 1]],
+    "state35": [[[1, 1], [2, 1], 1], [[1, 2], [2, 2], 1]],
 }
 
 # what the board looks like currently.
@@ -87,6 +90,45 @@ board = [['i', 'i', 'i'], [' ', ' ', ' '], ['O', 'O', 'O']]
 # stored used moves. state      from       to
 # example           ['state4', [0, 1], [1, 2]]
 used_moves = []
+
+
+def get_pos(board, piece):
+    return [[i, j] for i, j in itertools.product(range(3), range(3)) if board[i][j] == piece]
+
+
+def get_possible_moves(current_board, current_turn):
+    # get the opposite.
+    opposite = 'O' if current_turn == 'i' else 'i'
+    # forward of Ai and forward of player is different.
+    forward_offset = -1 if current_turn == 'O' else 1
+    possible_moves = []
+    # for every piece of the current turn/player, check if it can
+    # A go forward; if it can, add it to possible_moves
+    for piece in get_pos(board=current_board, piece=current_turn):
+        piece[0] = piece[0] + forward_offset
+        with contextlib.suppress(IndexError):
+            if current_board[piece[0]][piece[1]] == ' ':
+                possible_moves.append(piece)
+    #print("forward", possible_moves)
+    # B go left diagonally; if it can, add it to possible_moves
+    for piece in get_pos(board=current_board, piece=current_turn):
+        piece[0] += forward_offset
+        piece[1] -= 1
+        with contextlib.suppress(IndexError):
+            if piece[1] < 0 or piece[0] < 0:
+                continue
+            if current_board[piece[0]][piece[1]] == opposite:
+                possible_moves.append(piece)
+    #print("left", possible_moves)
+    # C go right diagonally; if it can, add it to possible_moves
+    for piece in get_pos(board=current_board, piece=current_turn):
+        piece[0] += forward_offset
+        piece[1] += 1
+        with contextlib.suppress(IndexError):
+            if current_board[piece[0]][piece[1]] == opposite:
+                possible_moves.append(piece)
+    #print("right", possible_moves)
+    return possible_moves
 
 
 def print_board():
@@ -178,8 +220,8 @@ def check_game_state(turn=None):
     # Anyone who reaches the other player's respective square first,
     # or takes out all of the opponent's pieces,
     # or makes the other player unable to make any valid moves in their turn is the winner\
-    stalemate_i = get_possible_moves(current_board=board, current_turn='i')
-    stalemate_O = get_possible_moves(current_board=board, current_turn='O')
+    check = 'i' if turn == 'O' else 'O'
+    stalemate = get_possible_moves(current_board=board, current_turn=check)
     if 'i' in board[2]:
         return 'i'
     elif 'O' in board[0]:
@@ -188,9 +230,7 @@ def check_game_state(turn=None):
         return 'i'
     elif get_pos(board, 'i') == []:
         return 'O'
-    elif stalemate_i == []:
-        return 'stalemate'
-    elif stalemate_O == []:
+    elif stalemate == []:
         return 'stalemate'
     else:
         return
@@ -236,42 +276,40 @@ def ai_move():
     board[to[0]][to[1]] = 'i'
     # records the move into a list. Used later to change the weights next game.
     used_moves.append([state, _from, to])
-    print('called')
 
 
 def change_weights(game_outcome, weight_change_lose=-1, weight_change_win=0):
     # if player (O) won, it activates.
     # By default, it changes the weight by -1 if it loses. In matchbox terms, it removes the bead.
     # By default, it changes the weight by 0 if it wins.
+    last_move = used_moves[-1]
     if game_outcome == 'O':
-        for used_move in used_moves:
-            used_state = used_move[0]
-            # print(used_state)
-            used_from = used_move[1]
-            used_to = used_move[2]
-            moves = ai_moves.get(used_state)
-            #print("BEFORE", ai_moves.get(used_state))
-            for index, move in enumerate(moves):
-                if move[0] == used_from and move[1] == used_to:
-                    new_weight = move[2] + weight_change_lose
-                    ai_moves[used_state][index] = [
-                        used_from, used_to, new_weight]
-            #print("AFTER", ai_moves.get(used_state))
+        used_state = last_move[0]
+        # print(used_state)
+        used_from = last_move[1]
+        used_to = last_move[2]
+        moves = ai_moves.get(used_state)
+        #print("BEFORE", ai_moves.get(used_state))
+        for index, move in enumerate(moves):
+            if move[0] == used_from and move[1] == used_to:
+                new_weight = move[2] + weight_change_lose
+                ai_moves[used_state][index] = [
+                    used_from, used_to, new_weight]
+        #print("AFTER", ai_moves.get(used_state))
     # same thing, but this is for when the AI wins.
     elif game_outcome == 'i':
-        for used_move in used_moves:
-            used_state = used_move[0]
-            # print(used_state)
-            used_from = used_move[1]
-            used_to = used_move[2]
-            moves = ai_moves.get(used_state)
-            #print("BEFORE", ai_moves.get(used_state))
-            for index, move in enumerate(moves):
-                if move[0] == used_from and move[1] == used_to:
-                    new_weight = move[2] + weight_change_win
-                    ai_moves[used_state][index] = [
-                        used_from, used_to, new_weight]
-            #print("AFTER", ai_moves.get(used_state))
+        used_state = last_move[0]
+        # print(used_state)
+        used_from = last_move[1]
+        used_to = last_move[2]
+        moves = ai_moves.get(used_state)
+        #print("BEFORE", ai_moves.get(used_state))
+        for index, move in enumerate(moves):
+            if move[0] == used_from and move[1] == used_to:
+                new_weight = move[2] + weight_change_win
+                ai_moves[used_state][index] = [
+                    used_from, used_to, new_weight]
+        #print("AFTER", ai_moves.get(used_state))
     else:
         return
 
@@ -302,7 +340,7 @@ def show_score():
         print('there are no scores yet!')
         return
     print("\n\nMatches played : ", total_matches, "\nPlayer wins:",
-          player_wins, "\nAI wins: ", ai_wins, "\n Win ratio \n Player :", player_ratio, "%\n AI :", ai_ratio, "%\n\n")
+          player_wins, "\nAI wins: ", ai_wins, "\n Win ratio \n Player :", round(player_ratio), "%\n AI :", round(ai_ratio), "%\n\n")
 
 
 def instructions():
