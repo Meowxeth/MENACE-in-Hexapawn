@@ -284,8 +284,7 @@ def ai_move():
     used_moves.append([state, _from, to])
 
 
-def change_weights(game_outcome, weight_change_lose=1, weight_change_win=0):
-    # if player (O) won, it activates.
+def change_weights(game_outcome, weight_change_lose=-1, weight_change_win=0):
     # By default, it changes the weight by -1 if it loses. In matchbox terms, it removes the bead.
     # By default, it changes the weight by 0 if it wins.
     last_move = used_moves[-1]
@@ -293,6 +292,7 @@ def change_weights(game_outcome, weight_change_lose=1, weight_change_win=0):
         moves = ai_moves.get(last_move[0])
         for index, move in enumerate(moves):
             if move[0] == last_move[1] and move[1] == last_move[2]:
+                print('moves before', moves)
                 if move[2] < 0:
                     try:
                         previous_move = used_moves[-2]
@@ -308,6 +308,7 @@ def change_weights(game_outcome, weight_change_lose=1, weight_change_win=0):
                 new_weight = move[2] + weight_change_lose
                 ai_moves[last_move[0]][index] = [
                     last_move[1], last_move[2], new_weight]
+                print('moves after', moves)
     # same thing, but this is for when the AI wins.
     elif game_outcome == 'i':
         moves = ai_moves.get(last_move[0])
@@ -428,6 +429,7 @@ def main_loop():
                 turn = 0
                 continue
             ai_move()
+            print_board()
             check_ai = check_game_state(turn='i')
             if check_ai == 'i' or check_ai != 'O' and check_ai == 'stalemate':
                 print('\nAI won!\n')
@@ -438,7 +440,6 @@ def main_loop():
                 print_board()
                 turn = 0
                 continue
-            print_board()
             turn += 1
 
 
