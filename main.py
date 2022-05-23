@@ -45,6 +45,8 @@ game_states = {
     "state34": [['i', ' ', ' '], [' ', 'O', 'i'], [' ', ' ', ' ']],
     "state35": [['i', ' ', ' '], ['O', 'i', 'i'], [' ', ' ', ' ']],
     "state36": [[' ', 'i', 'i'], ['O', ' ', 'O'], ['O', ' ', ' ']],
+    "state37": [['i', ' ', 'i'], [' ', 'O', 'O'], [' ', 'O', ' ']],
+    "state38": [[' ', ' ', 'i'], ['O', 'O', 'O'], [' ', ' ', ' ']],
 
 }
 ai_moves = {
@@ -85,6 +87,8 @@ ai_moves = {
     "state34": [[[0, 0], [1, 0], 1], [[1, 2], [2, 2], 1]],
     "state35": [[[1, 1], [2, 1], 1], [[1, 2], [2, 2], 1]],
     "state36": [[[0, 1], [1, 1], 1], [[0, 1], [1, 0], 1], [[0, 1], [1, 2], 1]],
+    "state37": [[[0, 0], [1, 0], 1], [[0, 0], [1, 1], 1], [[0, 2], [1, 1], 1]],
+    "state38": [[[0, 2], [1, 1], 1]],
 }
 
 # what the board looks like currently.
@@ -427,11 +431,11 @@ def main_loop():
             check_ai = check_game_state(turn='i')
             if check_ai == 'i' or check_ai != 'O' and check_ai == 'stalemate':
                 print('\nAI won!\n')
-                print_board()
                 change_weights(game_outcome='i')
                 reset_board()
                 clear_used_moves()
                 record_win('i')
+                print_board()
                 turn = 0
                 continue
             print_board()
