@@ -4,7 +4,6 @@ import contextlib
 import itertools
 print('hello world!')
 
-# TODO add more game states. investigate and fix the issue on why when Player does c3 c2, then the ai does a3 a2 every single time.
 # Hard coded possible states.
 game_states = {
     # state0 is the starting state.
